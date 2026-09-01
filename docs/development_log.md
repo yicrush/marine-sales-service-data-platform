@@ -15,7 +15,7 @@ Development will begin after the Europe trip.
 ### Workflow and Requirements Analysis
 I interviewed the stakeholder to understand the overall business workflow and identify the project requirements. I then documented the workflow, the documents involved at each stage, and how they are connected.
 This was a valuable opportunity to understand how and where the data is actually used before beginning the data engineering work. It also helped me see the entire business process rather than viewing each document as an isolated data source.
-Since the stakeholder’s requirements were clear, I was able to define the project goal more specifically: building a structured data platform that can eventually support quotation automation and pricing analysis.
+Since the stakeholder’s requirements were clear, I was able to define the project goal more specifically: building a structured data platform that can eventually support quotation automation.
 
 ## 2026-09-01
 
