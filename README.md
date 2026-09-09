@@ -1,4 +1,4 @@
-# marine-parts-data-platform
+# marine-sales-service-data-platform
 
 ## Overview
 
