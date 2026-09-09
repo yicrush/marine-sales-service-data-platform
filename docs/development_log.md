@@ -27,3 +27,8 @@ The main challenges were:
 
 However, after reviewing multiple quotations, I gained a much clearer understanding of the business workflow. I also began to see how the database schema should be structured while still accommodating irregular and incomplete data.
 My next step is to create the first draft of the data schema and test it by extracting data from several sample quotations.
+
+## 2026-09-09
+
+### ER Diagram Completed
+- Created the initial ERD for quotation data, including customers, vessels, quotation items, KIT components, and service details.
