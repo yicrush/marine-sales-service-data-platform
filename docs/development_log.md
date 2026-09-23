@@ -40,3 +40,9 @@ My next step is to create the first draft of the data schema and test it by extr
 - I created the initial database schema based on the completed ERD. I used AI to generate the SQL and reviewed the resulting schema myself. I then manually loaded one sample quotation from each quotation type: M (item quotation) and O (service quotation).
 - During the loading process, I found that the meaning and intended use of some columns were unclear. Since the same fields can appear differently depending on the quotation type, I decided to create a data dictionary to define each column and establish consistent data-entry rules.
 - I also discovered that some group-level information was being lost. In addition to the main pump and servo pump, the line filter and Others groups also contain product or equipment model information. I therefore decided to revise the schema to preserve this information.
+
+## 2026-09-23
+
+### Database Schema Updated
+
+- Updated the ERD, database schema, and data dictionary to version 2.
