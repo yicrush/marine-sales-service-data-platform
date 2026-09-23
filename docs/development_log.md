@@ -43,6 +43,9 @@ My next step is to create the first draft of the data schema and test it by extr
 
 ## 2026-09-23
 
-### Database Schema Updated
+### ETL Pipeline Development Started
 
 - Updated the ERD, database schema, and data dictionary to version 2.
+- With the schema structure now established, I will continue refining it as needed while developing and testing the ETL pipeline.
+- Started implementing the Extract stage by writing initial code to read quotation sheets and extract header information.
+- It feels like the core data engineering phase of the project is finally beginning, and I am excited to move forward with it.

@@ -1,5 +1,5 @@
 -- PostgreSQL schema for the marine quotation data platform.
--- Schema version: 0.2
+-- Schema version: 2
 
 BEGIN;
 
