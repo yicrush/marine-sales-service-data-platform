@@ -49,3 +49,12 @@ My next step is to create the first draft of the data schema and test it by extr
 - With the schema structure now established, I will continue refining it as needed while developing and testing the ETL pipeline.
 - Started implementing the Extract stage by writing initial code to read quotation sheets and extract header information.
 - It feels like the core data engineering phase of the project is finally beginning, and I am excited to move forward with it.
+
+## 2026-10-02
+
+### Extract Code Implementation
+
+- Implemented extraction code using one sample each of an M quotation, O quotation, and KIT detail sheet, with AI-assisted development, followed by manual review, testing, and refinement.
+- Separated the logic into common.py, m_quotation.py, o_quotation.py, and kit_detail.py, with shared header processing in common.py.
+- Added __init__.py to organize the extraction modules as a package.
+- During review, I found that contact details were missing from the AI-generated code and updated the extraction logic. This confirmed the need to review and validate AI-generated code carefully.
