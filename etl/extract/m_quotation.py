@@ -6,6 +6,17 @@ from .common import (
 )
 
 
+def find_header_column(sheet, header_row, header_name):
+    for cell in sheet[header_row]:
+        if (
+            isinstance(cell.value, str)
+            and cell.value.strip().upper() == header_name.upper()
+        ):
+            return cell.column
+
+    return None
+
+
 def extract_m_items(sheet):
     items = []
 
@@ -14,32 +25,66 @@ def extract_m_items(sheet):
     if header_row is None:
         return items
 
+    item_col = find_header_column(
+        sheet,
+        header_row,
+        "Item"
+    )
+
+    description_col = find_header_column(
+        sheet,
+        header_row,
+        "Description"
+    )
+
     row_num = header_row + 1
 
     while is_number(
         sheet.cell(row=row_num, column=2).value
     ):
+        item_raw = (
+            sheet.cell(
+                row=row_num,
+                column=item_col
+            ).value
+            if item_col is not None
+            else None
+        )
+
+        description_raw = (
+            sheet.cell(
+                row=row_num,
+                column=description_col
+            ).value
+            if description_col is not None
+            else None
+        )
+
         item = {
             "line_no": sheet.cell(
                 row=row_num,
                 column=2
             ).value,
-            "description": sheet.cell(
-                row=row_num,
-                column=3
-            ).value,
+
+            "item_raw": item_raw,
+
+            "description_raw": description_raw,
+
             "quantity": sheet.cell(
                 row=row_num,
                 column=8
             ).value,
+
             "unit_price": sheet.cell(
                 row=row_num,
                 column=9
             ).value,
+
             "amount": sheet.cell(
                 row=row_num,
                 column=10
             ).value,
+
             "remark": sheet.cell(
                 row=row_num,
                 column=11

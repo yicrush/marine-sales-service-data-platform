@@ -1,7 +1,7 @@
 from .common import is_number
 
 
-def extract_kit_detail(sheet):
+def extract_kit_document(sheet, document_type):
     groups = []
     current_group = None
     amount_summary = None
@@ -60,7 +60,7 @@ def extract_kit_detail(sheet):
 
             continue
 
-        # KIT amount summary row
+        # Document amount summary row
         if (
             isinstance(line_no, str)
             and "AMOUNT" in line_no.upper()
@@ -87,7 +87,7 @@ def extract_kit_detail(sheet):
             groups.append(current_group)
 
     return {
-        "type": "KIT_DETAIL",
+        "document_type": document_type,
         "sheet_name": sheet.title,
         "title_raw": sheet.cell(
             row=1,
@@ -96,3 +96,17 @@ def extract_kit_detail(sheet):
         "groups": groups,
         "amount_summary": amount_summary,
     }
+
+
+def extract_kit_detail(sheet):
+    return extract_kit_document(
+        sheet,
+        document_type="KIT_DETAIL"
+    )
+
+
+def extract_cost_sheet(sheet):
+    return extract_kit_document(
+        sheet,
+        document_type="COST_SHEET"
+    )
