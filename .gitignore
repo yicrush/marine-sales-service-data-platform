@@ -239,3 +239,9 @@ service-account*.json
 .idea/
 .DS_Store
 Thumbs.db
+
+# Reviewed code downloads
+!/downloads/
+/downloads/*
+!/downloads/README.md
+!/downloads/etl-fixes.zip
