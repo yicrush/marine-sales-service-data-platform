@@ -39,3 +39,10 @@ The system will:
 - Power BI
 - Docker
 - Microsoft Azure
+
+## Development
+
+The current ETL supports Excel extraction, schema-v3 transformation and transactional
+PostgreSQL loading. See [the complete ETL workflow](docs/load.md) for installation,
+database setup, validation, repeat runs and tests, and [Transform](docs/transform.md)
+for the normalization rules and staging JSON format.
