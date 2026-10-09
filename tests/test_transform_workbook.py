@@ -73,6 +73,55 @@ class WorkbookTests(unittest.TestCase):
         self.assertEqual(result["records"][0]["kit_documents"], [])
         self.assertIn("KIT sample", result["skipped_sheets"])
 
+    def test_numberless_priced_row_reaches_load_validation(self):
+        from openpyxl import load_workbook
+        from etl.load.validation import validate_records
+        workbook = load_workbook(self.path)
+        workbook["M sample"]["B16"] = None
+        workbook.save(self.path)
+        workbook.close()
+        before = hashlib.sha256(self.path.read_bytes()).hexdigest()
+        result = transform_workbook(self.path, sheet_names=["M sample"])
+        accepted, rejected = validate_records(result["records"])
+        self.assertEqual(rejected, [])
+        self.assertEqual(len(accepted), 1)
+        item = accepted[0]["quotation_items"][0]
+        self.assertEqual((item["line_no"], item["quantity"], item["unit_price"], item["quoted_amount"]), (1, 2, 10, 20))
+        self.assertIsNone(result["records"][0]["raw"]["items"][0]["source_line_no"])
+        self.assertEqual(result["records"][0]["raw"]["items"][0]["source_row"], 16)
+        self.assertEqual(hashlib.sha256(self.path.read_bytes()).hexdigest(), before)
+
+    def test_restarted_numbers_preserve_distinct_section_context(self):
+        from openpyxl import load_workbook
+        from etl.load.validation import validate_records
+        workbook = load_workbook(self.path)
+        sheet = workbook["M sample"]
+        for row in sheet.iter_rows(min_row=16, max_row=25):
+            for cell in row:
+                cell.value = None
+        for coordinate, value in {
+            "B16": "Main pump model A", "B17": 1, "C17": "Seal", "H17": 2, "I17": 10, "J17": 20,
+            "B19": "Main pump model B", "B20": 1, "C20": "Seal", "H20": 3, "I20": 10, "J20": 30,
+            "H22": "TOTAL(USD)", "J22": 50,
+            "A24": "TERMS AND CONDITIONS:", "B25": 1, "C25": "Unrelated footer", "H25": 1, "I25": 999, "J25": 999,
+        }.items():
+            sheet[coordinate] = value
+        workbook.save(self.path)
+        workbook.close()
+        result = transform_workbook(self.path, sheet_names=["M sample"])
+        accepted, rejected = validate_records(result["records"])
+        self.assertEqual(rejected, [])
+        items = accepted[0]["quotation_items"]
+        self.assertEqual([item["line_no"] for item in items], [1, 2])
+        self.assertEqual([item["quantity"] for item in items], [2, 3])
+        self.assertEqual([item["quoted_amount"] for item in items], [20, 30])
+        self.assertIn("SECTION: Main pump model A", items[0]["line_text_raw"])
+        self.assertIn("SECTION: Main pump model B", items[1]["line_text_raw"])
+        self.assertIn("LINE: 1", items[1]["line_text_raw"])
+        raw_items = result["records"][0]["raw"]["items"]
+        self.assertEqual([item["source_line_no"] for item in raw_items], [1, 1])
+        self.assertEqual([item["source_row"] for item in raw_items], [17, 20])
+
     def test_per_vessel_displayed_price_is_not_an_aggregate_total(self):
         from etl.transform import transform_quotation
         record = transform_quotation({
@@ -83,6 +132,24 @@ class WorkbookTests(unittest.TestCase):
         self.assertEqual(record["pricing_context"]["displayed_amount_per_unit"], 15000)
         self.assertEqual(record["pricing_context"]["amount_basis_raw"], "VESSEL")
         self.assertIn("per_unit_total", [issue["code"] for issue in record["issues"]])
+
+    def test_numeric_total_with_per_vessel_label_requires_review(self):
+        from openpyxl import load_workbook
+        from etl.load.validation import ValidationError, validate_records
+        workbook = load_workbook(self.path)
+        workbook["M sample"]["H19"] = "TOTAL / vessel"
+        workbook.save(self.path)
+        workbook.close()
+        record = transform_workbook(self.path, sheet_names=["M sample"])["records"][0]
+        self.assertIsNone(record["quotation"]["document_total_amount"])
+        self.assertEqual(record["pricing_context"]["displayed_amount_per_unit"], 18)
+        self.assertEqual(record["pricing_context"]["amount_basis_raw"], "vessel")
+        self.assertEqual(record["raw"]["summary"]["quoted_amount_label_raw"], "TOTAL / vessel")
+        with self.assertRaises(ValidationError):
+            validate_records([record])
+        accepted, rejected = validate_records([record], allow_warnings=True)
+        self.assertEqual(rejected, [])
+        self.assertIsNone(accepted[0]["quotation"]["document_total_amount"])
 
     def test_full_named_month_with_dots(self):
         from etl.transform.common import parse_date, ParseError

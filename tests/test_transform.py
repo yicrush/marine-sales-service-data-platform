@@ -189,6 +189,31 @@ class QuotationTransformTests(unittest.TestCase):
         self.assertEqual(item["line_text_raw"], "LINE: A\nOriginal specification\nP.No.001-A")
         self.assertIsNone(item["item_name"])
 
+    def test_equipment_heading_is_context_not_an_item_classification(self):
+        source = quotation_fixture()
+        source["items"][0].update({"equipment_heading_raw": "Service KIT equipment group", "source_line_no": 1, "source_row": 17})
+        result = transform_quotation(source, currency="USD")
+        item = result["quotation_items"][0]
+        self.assertEqual(item["item_type"], "UNKNOWN")
+        self.assertIn("SECTION: Service KIT equipment group", item["line_text_raw"])
+        self.assertEqual(item["quantity"], 2)
+        self.assertEqual(item["quoted_amount"], Decimal("20.00"))
+        self.assertEqual(result["raw"], source)
+
+    def test_source_number_currency_labels_are_rejected_as_identifiers(self):
+        from etl.load.validation import ValidationError, validate_records
+        for printed_number in ("USD 1", "1 USD", "unexpected", "1,000"):
+            with self.subTest(printed_number=printed_number):
+                source = quotation_fixture()
+                source["items"][0].update({"line_no": printed_number, "source_line_no": printed_number, "source_row": 17})
+                result = transform_quotation(source, currency="USD")
+                self.assertFalse(result["is_valid"])
+                self.assertIsNone(result["quotation_items"][0]["line_no"])
+                self.assertEqual(result["raw"]["items"][0]["source_line_no"], printed_number)
+                self.assertTrue(any(issue["field"] == "quotation_items[0].line_no" and issue["severity"] == "error" for issue in result["issues"]))
+                with self.assertRaises(ValidationError):
+                    validate_records([result], allow_warnings=True)
+
     def test_input_and_attached_documents_are_not_mutated_or_aliased(self):
         source = quotation_fixture()
         document = transform_kit_document(kit_fixture(), currency="USD")

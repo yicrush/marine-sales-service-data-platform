@@ -2,8 +2,8 @@
 
 The Transform stage normalizes the existing Extract dictionaries according to
 `data_dictionary_v3.md` and `schema_v3.sql`. It does not write to PostgreSQL or
-generate primary/foreign keys. Database IDs, customer deduplication, vessel
-matching and insert transactions belong to the future Load stage.
+generate primary/foreign keys. The [Load stage](load.md) handles database IDs,
+customer matching, vessel matching and insert transactions.
 
 ## Run locally
 
@@ -102,7 +102,8 @@ not floats, and dates as ISO strings. Parse those strings back to Decimal in Loa
   `discount_rate_is_fraction=True` is passed explicitly.
 - A displayed amount `USD 15,000 / VESSEL` retains the normalized amount and basis
   in `pricing_context`, leaves aggregate `document_total_amount` as `None`, and
-  raises a warning. No vessel count is assumed to calculate a total.
+  raises a warning. A numeric amount under a `TOTAL / vessel` label is handled
+  the same way. No vessel count is assumed to calculate a total.
 - Item text retains line breaks. Separate Item/Description fields are combined
   with explicit labels. Uncertain categories stay `UNKNOWN`; unfamiliar KIT
   groups stay `OTHERS` with a warning. Part numbers are not inferred.
@@ -116,6 +117,13 @@ not floats, and dates as ISO strings. Parse those strings back to Decimal in Loa
 - KIT and cost documents stay separate. A document is not automatically linked
   to an individual KIT quotation item. Model/count parsing requires an explicit
   `(MODEL: 2 sets)` heading. Unknown groups and shifted source columns need review.
+- M tables may include priced rows without printed numbers, equipment headings,
+  blank separators, intermediate subtotals and repeated headers. Extraction
+  continues through those sections and stops before final totals, discounts or
+  terms. Valid unique printed numbers are retained; missing or restarted numbers
+  use positions in source order. Original numbers, Excel rows and heading text
+  remain in `raw.items`; section text and changed printed numbers also remain in
+  `line_text_raw`. Quantities and prices are never filled from neighboring rows.
 - Extract still assumes particular M table and KIT column layouts. Empty item
   extraction, unsupported source layouts, ambiguous metadata and uncached Excel
   formulas are reported. Transform does not recalculate Excel formulas.

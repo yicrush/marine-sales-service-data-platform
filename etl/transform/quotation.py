@@ -61,6 +61,7 @@ def _items(extracted, validation):
                 raw_text += "\nDESCRIPTION: " + description
         else:
             raw_text = description
+        item_text = raw_text
         quantity, unit = validation.quantity(raw.get("quantity"), f"{path}.quantity")
         supplied_unit = text(raw.get("quantity_unit"))
         if supplied_unit and not isinstance(raw.get("quantity_unit"), str):
@@ -76,16 +77,29 @@ def _items(extracted, validation):
         if base is None and text(raw.get("base_amount")) is None and text(raw.get("discount_rate")) is None:
             base = quoted_amount
         line_no = raw.get("line_no")
-        if line_no is None or (isinstance(line_no, str) and re.fullmatch(r"[A-Za-z]+", line_no.strip())):
+        if line_no is None or ("source_line_no" not in raw and isinstance(line_no, str)
+                               and re.fullmatch(r"[A-Za-z]+", line_no.strip())):
             line_no = index + 1
             if raw.get("line_no") is not None:
                 raw_text = f"LINE: {raw['line_no']}\n" + (raw_text or "")
-        kind = raw.get("item_type") or _item_type(raw_text)
+        source_line = text(raw.get("source_line_no"))
+        if source_line is not None and raw.get("source_line_no") != raw.get("line_no"):
+            raw_text = f"LINE: {source_line}\n" + (raw_text or "")
+        section = text(raw.get("equipment_heading_raw"))
+        if section is not None:
+            raw_text = f"SECTION: {section}\n" + (raw_text or "")
+        kind = raw.get("item_type") or _item_type(item_text)
         if kind not in {"PART", "KIT", "SERVICE", "EXPENSE", "OTHER", "UNKNOWN"}:
             validation.add("invalid_item_type", f"{path}.item_type", "Unsupported item category", "error")
             kind = "UNKNOWN"
+        if ("source_line_no" in raw and isinstance(line_no, str)
+                and not re.fullmatch(r"[+-]?\d+(?:\.\d+)?", line_no.strip())):
+            validation.add("invalid_value", f"{path}.line_no", "Expected an integer item number without currency or text labels", "error")
+            normalized_line_no = None
+        else:
+            normalized_line_no = validation.integer(line_no, f"{path}.line_no", positive=True)
         result.append({
-            "line_no": validation.integer(line_no, f"{path}.line_no", positive=True),
+            "line_no": normalized_line_no,
             "line_text_raw": raw_text,
             "item_type": kind,
             "item_name": item_name,
@@ -184,6 +198,15 @@ def transform_quotation(extracted, *, source_file_name=None, currency=None,
             }
             total_source = None
             validation.add("per_unit_total", "quotation.document_total_amount", "Displayed total is per unit; normalized price retained in pricing_context and aggregate total left unknown")
+    total_label = text(summary.get("quoted_amount_label_raw"))
+    label_basis = re.search(r"\bTOTAL\s*(?:\([^)]*\)\s*)?/\s*([A-Za-z ]+)\s*$", total_label or "", re.I)
+    if pricing_context is None and label_basis:
+        pricing_context = {
+            "displayed_amount_per_unit": validation.money(total_source, "pricing_context.displayed_amount_per_unit"),
+            "amount_basis_raw": label_basis[1],
+        }
+        total_source = None
+        validation.add("per_unit_total", "quotation.document_total_amount", "Total label specifies a per-unit amount; normalized price retained in pricing_context and aggregate total left unknown")
     quotation.update({
         "quotation_date": validation.parse(parse_date, header.get("date_raw"), "quotation.quotation_date"),
         "subject": strip_label(header.get("subject_raw"), r"Subject"),
